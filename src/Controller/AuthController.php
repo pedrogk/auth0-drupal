@@ -199,7 +199,10 @@ class AuthController extends ControllerBase {
         $joinUser = user_load_by_mail($userInfo['email']);
       }
     } else {
-      function_exists('dd') && dd($userInfo['email'], 'join user by mail is not enabled, skipping lookup user by email');
+      function_exists('dd') && dd($user_info['preferred_username'], 'join user by username');
+      if (!empty($user_info['email_verified']) || $isDatabaseUser) {
+        $joinUser = user_load_by_name($user_info['preferred_username']);
+      }
     }
 
 
@@ -438,7 +441,7 @@ class AuthController extends ControllerBase {
     }
 
     // If the username already exists, create a new random one.
-    $username = $userInfo['nickname'];
+    $username = $userInfo['preferred_username'];
     if (user_load_by_name($username)) {
       $username .= time();
     }
