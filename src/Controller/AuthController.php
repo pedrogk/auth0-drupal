@@ -89,12 +89,14 @@ class AuthController extends ControllerBase {
         $userInfo = $auth0->getUserInfo();
         $idToken = $auth0->getIdToken();
     } catch (\Exception $e) {
-
+    	\Drupal::logger('auth0')->notice('Login Exception');
     }
 
     if ($userInfo) {
+    	\Drupal::logger('auth0')->notice('Good Login');
       return $this->processUserLogin($request, $userInfo, $idToken);
     } else {
+    	\Drupal::logger('auth0')->notice('Failed Login');
       drupal_set_message(t('There was a problem logging you in, sorry by the inconvenience.'),'error');
 
       return new RedirectResponse('/');
