@@ -70,6 +70,7 @@ class AuthController extends ControllerBase {
    * Handles the callback for the oauth transaction.
    */
   public function callback(Request $request) {
+  	\Drupal::logger('auth0')->notice('Callback');
     global $base_root;
 
     $config = \Drupal::service('config.factory')->get('auth0.settings');
@@ -120,6 +121,7 @@ class AuthController extends ControllerBase {
    * Process the auth0 user profile and signin or signup the user.
    */
   protected function processUserLogin(Request $request, $userInfo, $idToken) {
+  	\Drupal::logger('auth0')->notice('process user login');
     try {
       $this->validateUserEmail($userInfo);
     }
@@ -140,7 +142,7 @@ class AuthController extends ControllerBase {
     $user = $this->findAuth0User($userInfo['user_id']);
 
     if ($user) {
-      function_exists('dd') && dd($user->id(), 'uid of existing drupal user found');
+      \Drupal::logger('auth0')->notice('uid of existing drupal user found');
 
       // User exists!
       // update the auth0_user with the new userInfo object.
@@ -153,7 +155,7 @@ class AuthController extends ControllerBase {
       $this->eventDispatcher->dispatch(Auth0UserSigninEvent::NAME, $event);
     }
     else {
-      function_exists('dd') && dd('existing drupal user NOT found');
+      \Drupal::logger('auth0')->notice('existing drupal NOT user found');
 
       try {
         $user = $this->signupUser($userInfo);
