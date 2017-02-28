@@ -203,10 +203,10 @@ class AuthController extends ControllerBase {
         $joinUser = user_load_by_mail($userInfo['email']);
       }
     } else {
-   	  \Drupal::logger('auth0')->notice($user_info['preferred_username'] . 'join user by username');
+   	  \Drupal::logger('auth0')->notice($userInfo['preferred_username'] . ' join user by username');
 
-   	  if (!empty($user_info['email_verified']) || $isDatabaseUser) {
-        $joinUser = user_load_by_name($user_info['preferred_username']);
+   	  if (!empty($userInfo['email_verified']) || $isDatabaseUser) {
+        $joinUser = user_load_by_name($userInfo['preferred_username']);
       }
     }
 
@@ -266,6 +266,8 @@ class AuthController extends ControllerBase {
     return empty($auth0_user) ? FALSE : User::load($auth0_user['drupal_id']);
   }
 
+  protected function loadUserByEmail()
+  
   /**
    * Update the auth0 user profile.
    */
@@ -293,7 +295,7 @@ class AuthController extends ControllerBase {
   /*
    * Update the $user profile attributes of a user based on the auth0 field mappings
    */
-  protected function auth0_update_fields($user_info, $user, &$edit)
+  protected function auth0_update_fields($userInfo, $user, &$edit)
   {
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     $auth0_claim_mapping = $config->get('auth0_claim_mapping');
@@ -313,7 +315,7 @@ class AuthController extends ControllerBase {
         if (in_array($key, $skip_mappings)) {
           \Drupal::logger('auth0')->notice('skipping mapping handled already by auth0 module '.$mapping);
         } else {
-          $value = isset($user_info[$mapping[0]]) ? $user_info[$mapping[0]] : '';
+          $value = isset($userInfo[$mapping[0]]) ? $userInfo[$mapping[0]] : '';
           $current_value = $user->get($key)->value;
           if ($current_value === $value) {
             \Drupal::logger('auth0')->notice('value is unchanged '.$key);
@@ -330,12 +332,12 @@ class AuthController extends ControllerBase {
   /**
    * Updates the $user->roles of a user based on the auth0 role mappings
    */
-  protected function auth0_update_roles($user_info, $user, &$edit)
+  protected function auth0_update_roles($userInfo, $user, &$edit)
   {
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     $auth0_claim_to_use_for_role = $config->get('auth0_claim_to_use_for_role');
     if (isset($auth0_claim_to_use_for_role) && !empty($auth0_claim_to_use_for_role)) {
-      $claim_value = isset($user_info[$auth0_claim_to_use_for_role]) ? $user_info[$auth0_claim_to_use_for_role] : '';
+      $claim_value = isset($userInfo[$auth0_claim_to_use_for_role]) ? $userInfo[$auth0_claim_to_use_for_role] : '';
       \Drupal::logger('auth0')->notice('claim_value '.$claim_value);
 
       $claim_values = array();
