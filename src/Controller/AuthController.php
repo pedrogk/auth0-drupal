@@ -279,14 +279,11 @@ class AuthController extends ControllerBase {
   }
 
   protected function auth0_update_fields_and_roles($userInfo, $user) {
-    \Drupal::logger('auth0')->notice('auth0_update_fields_and_roles called with userInfo '.$userInfo);
-    \Drupal::logger('auth0')->notice('auth0_update_fields_and_roles called with user '.$user);
 
     $edit = array();
     $this->auth0_update_fields($userInfo, $user, $edit);
     $this->auth0_update_roles($userInfo, $user, $edit);
 
-    \Drupal::logger('auth0')->notice('values to edit '.$edit);
     $user->save();
   }
 
@@ -297,12 +294,10 @@ class AuthController extends ControllerBase {
   {
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     $auth0_claim_mapping = $config->get('auth0_claim_mapping');
-    \Drupal::logger('auth0')->notice('auth0_claim_mapping '.$auth0_claim_mapping);
 
     if (isset($auth0_claim_mapping) && !empty($auth0_claim_mapping)) {
       // For each claim mapping, lookup the value, otherwise set to blank
       $mappings = $this->auth0_pipeListToArray($auth0_claim_mapping);
-      \Drupal::logger('auth0')->notice('auth0_claim_mapping as array '.$mappings);
 
       // Remove mappings handled automatically by the module
       $skip_mappings = array('uid', 'name', 'mail', 'init', 'is_new', 'status', 'pass');
@@ -332,6 +327,7 @@ class AuthController extends ControllerBase {
    */
   protected function auth0_update_roles($user_info, $user, &$edit)
   {
+  	\Drupal::logger('auth0')->notice("Mapping Roles");
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     $auth0_claim_to_use_for_role = $config->get('auth0_claim_to_use_for_role');
     if (isset($auth0_claim_to_use_for_role) && !empty($auth0_claim_to_use_for_role)) {
@@ -344,11 +340,9 @@ class AuthController extends ControllerBase {
       } else {
         $claim_values[] = $claim_value;
       }
-      \Drupal::logger('auth0')->notice('claim_values '.$claim_values);
 
       $auth0_role_mapping = $config->get('auth0_role_mapping');
       $mappings = $this->auth0_pipeListToArray($auth0_role_mapping);
-      \Drupal::logger('auth0')->notice('auth0_role_mapping as array '.$mappings);
 
       $roles_granted = array();
       $roles_managed_by_mapping = array();
@@ -362,23 +356,18 @@ class AuthController extends ControllerBase {
       }
       $roles_granted = array_unique($roles_granted);
       $roles_managed_by_mapping = array_unique($roles_managed_by_mapping);
-      \Drupal::logger('auth0')->notice('roles_granted '.$roles_granted);
-      \Drupal::logger('auth0')->notice('roles_managed_by_mapping '.$roles_managed_by_mapping);
 
       $not_granted = array_diff($roles_managed_by_mapping, $roles_granted);
-      \Drupal::logger('auth0')->notice('not_granted '.$not_granted);
 
       $user_roles = $user->getRoles();
-      \Drupal::logger('auth0')->notice('user_roles '.$user_roles);
 
       $new_user_roles = array_merge(array_diff($user_roles, $not_granted), $roles_granted);
-      \Drupal::logger('auth0')->notice('new_user_roles '.$new_user_roles);
 
       $tmp = array_diff($new_user_roles, $user_roles);
       if (empty($tmp)) {
         \Drupal::logger('auth0')->notice('no changes to roles detected');
       } else {
-        \Drupal::logger('auth0')->notice('changes to roles detected '.$new_user_roles);
+        \Drupal::logger('auth0')->notice('changes to roles detected');
         $edit['roles'] = $new_user_roles;
         foreach (array_diff($new_user_roles, $user_roles) as $new_role) {
           $user->addRole($new_role);
