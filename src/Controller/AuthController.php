@@ -203,10 +203,10 @@ class AuthController extends ControllerBase {
         $joinUser = user_load_by_mail($userInfo['email']);
       }
     } else {
-   	  \Drupal::logger('auth0')->notice($user_info['preferred_username'] . 'join user by username');
+   	  \Drupal::logger('auth0')->notice($userInfo['preferred_username'] . 'join user by username');
 
    	  if (!empty($user_info['email_verified']) || $isDatabaseUser) {
-        $joinUser = user_load_by_name($user_info['preferred_username']);
+        $joinUser = user_load_by_name($userInfo['preferred_username']);
       }
     }
 
