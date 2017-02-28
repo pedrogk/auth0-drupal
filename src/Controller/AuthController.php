@@ -8,7 +8,7 @@ namespace Drupal\auth0\Controller;
 
 // Create a variable to store the path to this module and load vendor files if they exist
 define('AUTH0_PATH', drupal_get_path('module', 'auth0'));
-function_exists('dd') && dd(AUTH0_PATH, 'AUTH0_PATH');
+\Drupal::logger('auth0')->notice('AUTH0_PATH: '.AUTH0_PATH);
 if (file_exists(AUTH0_PATH . '/vendor/autoload.php')) {
   require_once (AUTH0_PATH . '/vendor/autoload.php');
 }
@@ -70,10 +70,11 @@ class AuthController extends ControllerBase {
    * Handles the callback for the oauth transaction.
    */
   public function callback(Request $request) {
-  	\Drupal::logger('auth0')->notice('Callback');
     global $base_root;
 
     $config = \Drupal::service('config.factory')->get('auth0.settings');
+    
+    \Drupal::logger('auth0')->notice('auth0 config' . $config);
 
     $auth0 = new Auth0(array(
         'domain'        => $config->get('auth0_domain'),
@@ -128,6 +129,7 @@ class AuthController extends ControllerBase {
       $this->validateUserEmail($userInfo);
     }
     catch (EmailNotSetException $e) {
+    	\Drupal::logger('auth0')->notice('This account does not have an email associated. Please login with a different provider.');
       drupal_set_message(
         t('This account does not have an email associated. Please login with a different provider.'),
         'error'
@@ -157,7 +159,7 @@ class AuthController extends ControllerBase {
       $this->eventDispatcher->dispatch(Auth0UserSigninEvent::NAME, $event);
     }
     else {
-      \Drupal::logger('auth0')->notice('existing drupal NOT user found');
+      \Drupal::logger('auth0')->notice('existing drupal user NOT found');
 
       try {
         $user = $this->signupUser($userInfo);
@@ -190,12 +192,12 @@ class AuthController extends ControllerBase {
         $isDatabaseUser = true;
       }
     }
-    function_exists('dd') && dd($isDatabaseUser, 'isDatabaseUser');
+    
     $joinUser = false;
 
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     if ($config->get('auth0_join_user_by_mail_enabled')) {
-      function_exists('dd') && dd($userInfo['email'], 'join user by mail is enabled, looking up user by email');
+      \Drupal::logger('auth0')->notice($userInfo['email'] . 'join user by mail is enabled, looking up user by email');
       // If the user has a verified email or is a database user try to see if there is
       // a user to join with. The isDatabase is because we don't want to allow database
       // user creation if there is an existing one with no verified email.
@@ -203,15 +205,16 @@ class AuthController extends ControllerBase {
         $joinUser = user_load_by_mail($userInfo['email']);
       }
     } else {
-      function_exists('dd') && dd($user_info['preferred_username'], 'join user by username');
-      if (!empty($user_info['email_verified']) || $isDatabaseUser) {
+   	  \Drupal::logger('auth0')->notice($user_info['preferred_username'] . 'join user by username');
+
+   	  if (!empty($user_info['email_verified']) || $isDatabaseUser) {
         $joinUser = user_load_by_name($user_info['preferred_username']);
       }
     }
 
 
     if ($joinUser) {
-      function_exists('dd') && dd($joinUser->id(), 'drupal user found by email with uid');
+      \Drupal::logger('auth0')->notice($joinUser->id() . ' drupal user found by email with uid');
 
       // If we are here, we have a potential join user.
       // Don't allow creation or assignation of user if the email is not verified,
@@ -222,7 +225,7 @@ class AuthController extends ControllerBase {
       $user = $joinUser;
     }
     else {
-      function_exists('dd') && dd('creating new drupal user from auth0 user');
+      \Drupal::logger('auth0')->notice($userInfo['preferred_username'].' creating new drupal user from auth0 user');
 
       // If we are here, we need to create the user.
       $user = $this->createDrupalUser($userInfo);
@@ -278,19 +281,15 @@ class AuthController extends ControllerBase {
   }
 
   protected function auth0_update_fields_and_roles($userInfo, $user) {
-    function_exists('dd') && dd($userInfo, 'auth0_update_fields_and_roles called with userInfo');
-    function_exists('dd') && dd($user, 'auth0_update_fields_and_roles called with user');
+    \Drupal::logger('auth0')->notice('auth0_update_fields_and_roles called with userInfo '.$userInfo);
+    \Drupal::logger('auth0')->notice('auth0_update_fields_and_roles called with user '.$user);
 
     $edit = array();
     $this->auth0_update_fields($userInfo, $user, $edit);
     $this->auth0_update_roles($userInfo, $user, $edit);
-//
-    function_exists('dd') && dd($edit, 'values to edit');
-    $user->save();
-//    user_save($the_user, $edit);
-//    //cache_clear_all('menu:'. $uid, TRUE);
 
-    //function_exists('dd') && dd(user_load($user->get('uid')), 'the_user after updates');
+    \Drupal::logger('auth0')->notice('values to edit '.$edit);
+    $user->save();
   }
 
   /*
@@ -300,28 +299,28 @@ class AuthController extends ControllerBase {
   {
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     $auth0_claim_mapping = $config->get('auth0_claim_mapping');
-    function_exists('dd') && dd($auth0_claim_mapping, 'auth0_claim_mapping');
+    \Drupal::logger('auth0')->notice('auth0_claim_mapping '.$auth0_claim_mapping);
 
     if (isset($auth0_claim_mapping) && !empty($auth0_claim_mapping)) {
       // For each claim mapping, lookup the value, otherwise set to blank
       $mappings = $this->auth0_pipeListToArray($auth0_claim_mapping);
-      function_exists('dd') && dd($mappings, 'auth0_claim_mapping as array');
+      \Drupal::logger('auth0')->notice('auth0_claim_mapping as array '.$mappings);
 
       // Remove mappings handled automatically by the module
       $skip_mappings = array('uid', 'name', 'mail', 'init', 'is_new', 'status', 'pass');
       foreach ($mappings as $mapping) {
-        function_exists('dd') && dd($mapping, 'mapping');
+        \Drupal::logger('auth0')->notice('mapping '.$mapping);
 
         $key = $mapping[1];
         if (in_array($key, $skip_mappings)) {
-          function_exists('dd') && dd($mapping, 'skipping mapping handled already by auth0 module');
+          \Drupal::logger('auth0')->notice('skipping mapping handled already by auth0 module '.$mapping);
         } else {
           $value = isset($user_info[$mapping[0]]) ? $user_info[$mapping[0]] : '';
           $current_value = $user->get($key)->value;
           if ($current_value === $value) {
-            function_exists('dd') && dd($key, 'value is unchanged');
+            \Drupal::logger('auth0')->notice('value is unchanged '.$key);
           } else {
-            function_exists('dd') && dd($key . ' from [' . $current_value . '] to [' . $value . ']', 'value changed');
+            \Drupal::logger('auth0')->notice('value changed '.$key . ' from [' . $current_value . '] to [' . $value . ']');
             $edit[$key] = $value;
             $user->set($key, $value);
           }
@@ -339,7 +338,7 @@ class AuthController extends ControllerBase {
     $auth0_claim_to_use_for_role = $config->get('auth0_claim_to_use_for_role');
     if (isset($auth0_claim_to_use_for_role) && !empty($auth0_claim_to_use_for_role)) {
       $claim_value = isset($user_info[$auth0_claim_to_use_for_role]) ? $user_info[$auth0_claim_to_use_for_role] : '';
-      function_exists('dd') && dd($claim_value, 'claim_value');
+      \Drupal::logger('auth0')->notice('claim_value '.$claim_value);
 
       $claim_values = array();
       if (is_array($claim_value)) {
@@ -347,16 +346,16 @@ class AuthController extends ControllerBase {
       } else {
         $claim_values[] = $claim_value;
       }
-      function_exists('dd') && dd($claim_values, 'claim_values');
+      \Drupal::logger('auth0')->notice('claim_values '.$claim_values);
 
       $auth0_role_mapping = $config->get('auth0_role_mapping');
       $mappings = $this->auth0_pipeListToArray($auth0_role_mapping);
-      function_exists('dd') && dd($mappings, 'auth0_role_mapping as array');
+      \Drupal::logger('auth0')->notice('auth0_role_mapping as array '.$mappings);
 
       $roles_granted = array();
       $roles_managed_by_mapping = array();
       foreach ($mappings as $mapping) {
-        function_exists('dd') && dd($mapping, 'mapping');
+        \Drupal::logger('auth0')->notice('mapping '.$mapping);
         $roles_managed_by_mapping[] = $mapping[1];
 
         if (in_array($mapping[0], $claim_values)) {
@@ -365,23 +364,23 @@ class AuthController extends ControllerBase {
       }
       $roles_granted = array_unique($roles_granted);
       $roles_managed_by_mapping = array_unique($roles_managed_by_mapping);
-      function_exists('dd') && dd($roles_granted, 'roles_granted');
-      function_exists('dd') && dd($roles_managed_by_mapping, 'roles_managed_by_mapping');
+      \Drupal::logger('auth0')->notice('roles_granted '.$roles_granted);
+      \Drupal::logger('auth0')->notice('roles_managed_by_mapping '.$roles_managed_by_mapping);
 
       $not_granted = array_diff($roles_managed_by_mapping, $roles_granted);
-      function_exists('dd') && dd($not_granted, 'not_granted');
+      \Drupal::logger('auth0')->notice('not_granted '.$not_granted);
 
       $user_roles = $user->getRoles();
-      function_exists('dd') && dd($user_roles, 'user_roles');
+      \Drupal::logger('auth0')->notice('user_roles '.$user_roles);
 
       $new_user_roles = array_merge(array_diff($user_roles, $not_granted), $roles_granted);
-      function_exists('dd') && dd($new_user_roles, 'new_user_roles');
+      \Drupal::logger('auth0')->notice('new_user_roles '.$new_user_roles);
 
       $tmp = array_diff($new_user_roles, $user_roles);
       if (empty($tmp)) {
-        function_exists('dd') && dd('no changes to roles detected');
+        \Drupal::logger('auth0')->notice('no changes to roles detected');
       } else {
-        function_exists('dd') && dd($new_user_roles, 'changes to roles detected');
+        \Drupal::logger('auth0')->notice('changes to roles detected '.$new_user_roles);
         $edit['roles'] = $new_user_roles;
         foreach (array_diff($new_user_roles, $user_roles) as $new_role) {
           $user->addRole($new_role);
