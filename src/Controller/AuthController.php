@@ -8,7 +8,7 @@ namespace Drupal\auth0\Controller;
 
 // Create a variable to store the path to this module and load vendor files if they exist
 define('AUTH0_PATH', drupal_get_path('module', 'auth0'));
-\Drupal::logger('auth0')->notice('AUTH0_PATH: '.AUTH0_PATH);
+
 if (file_exists(AUTH0_PATH . '/vendor/autoload.php')) {
   require_once (AUTH0_PATH . '/vendor/autoload.php');
 }
@@ -74,8 +74,6 @@ class AuthController extends ControllerBase {
 
     $config = \Drupal::service('config.factory')->get('auth0.settings');
     
-    \Drupal::logger('auth0')->notice('auth0 config' . $config);
-
     $auth0 = new Auth0(array(
         'domain'        => $config->get('auth0_domain'),
         'client_id'     => $config->get('auth0_client_id'),
