@@ -123,6 +123,7 @@ class AuthController extends ControllerBase {
    */
   protected function processUserLogin(Request $request, $userInfo, $idToken) {
   	\Drupal::logger('auth0')->notice('process user login');
+
     try {
       $this->validateUserEmail($userInfo);
     }
@@ -194,6 +195,7 @@ class AuthController extends ControllerBase {
     $joinUser = false;
 
     $config = \Drupal::service('config.factory')->get('auth0.settings');
+    $user_name_claim = $config->get('auth0_username_claim');
     if ($config->get('auth0_join_user_by_mail_enabled')) {
       \Drupal::logger('auth0')->notice($userInfo['email'] . 'join user by mail is enabled, looking up user by email');
       // If the user has a verified email or is a database user try to see if there is
@@ -203,10 +205,10 @@ class AuthController extends ControllerBase {
         $joinUser = user_load_by_mail($userInfo['email']);
       }
     } else {
-   	  \Drupal::logger('auth0')->notice($userInfo['preferred_username'] . 'join user by username');
+      \Drupal::logger('auth0')->notice($userInfo[$user_name_claim] . 'join user by username');
 
    	  if (!empty($user_info['email_verified']) || $isDatabaseUser) {
-        $joinUser = user_load_by_name($userInfo['preferred_username']);
+   	    $joinUser = user_load_by_name($userInfo[$user_name_claim]);
       }
     }
 
@@ -223,7 +225,7 @@ class AuthController extends ControllerBase {
       $user = $joinUser;
     }
     else {
-      \Drupal::logger('auth0')->notice($userInfo['preferred_username'].' creating new drupal user from auth0 user');
+      \Drupal::logger('auth0')->notice($userInfo[$user_name_claim].' creating new drupal user from auth0 user');
 
       // If we are here, we need to create the user.
       $user = $this->createDrupalUser($userInfo);
@@ -417,7 +419,8 @@ class AuthController extends ControllerBase {
    * Create the Drupal user based on the Auth0 user profile.
    */
   protected function createDrupalUser($userInfo) {
-
+    $config = \Drupal::service('config.factory')->get('auth0.settings');
+    $user_name_claim = $config->get('auth0_username_claim');
     $user = User::create();
 
     $user->setPassword(uniqid('auth0', true));
@@ -431,7 +434,7 @@ class AuthController extends ControllerBase {
     }
 
     // If the username already exists, create a new random one.
-    $username = $userInfo['preferred_username'];
+    $username = $userInfo[$user_name_claim];
     if (user_load_by_name($username)) {
       $username .= time();
     }
