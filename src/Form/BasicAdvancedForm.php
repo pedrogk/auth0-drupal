@@ -67,6 +67,13 @@ Drupal user account.
 ')
     );
 
+    $form['auth0_username_claim'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Map Auth0 claim to Drupal user name.'),
+      '#default_value' => $config->get('auth0_username_claim', 'nickname'),
+      '#description' => t('Maps the given claim field as the Drupal user name field. The default is the nickname claim'),
+    );
+    
     $form['auth0_login_css'] = array(
         '#type' => 'textarea',
         '#title' => t('Login widget css'),
