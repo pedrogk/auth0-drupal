@@ -146,7 +146,7 @@ class AuthController extends ControllerBase {
   /**
    * Create a new nonce in session and return it
    */
-  protected function getNonce($returnTo) {
+  protected function getNonce($returnTo = null) {
     // Have to start the session after putting something into the session, or we don't actually start it!
     if (!$this->sessionManager->isStarted() && !isset($_SESSION['auth0_is_session_started'])) {
       $_SESSION['auth0_is_session_started'] = 'yes';
